@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 // Nos nouveaux écrans
 // Modifie juste cette ligne en haut du fichier :
 // Modifie juste la ligne "type Screen" en haut du fichier :
-type Screen = 'auth' | 'menu' | 'levels' | 'game' | 'profile' | 'leaderboard' | 'creator';
+type Screen = 'auth' | 'menu' | 'levels' | 'game' | 'profile' | 'leaderboard' | 'creator' | 'admin';
 
 interface AppState {
   currentScreen: Screen;

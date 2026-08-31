@@ -1,15 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../core/supabase';
 import { useAppStore } from '../../store/useAppStore';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Edit2, Check } from 'lucide-react';
 
 export default function Profile() {
   const session = useAppStore((state) => state.session);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [currentUsername, setCurrentUsername] = useState('');
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [message, setMessage] = useState('');
+
+  // Charger le pseudo existant si l'utilisateur est connecté
+  useEffect(() => {
+    if (!session) return;
+    supabase.from('profiles').select('username').eq('id', session.user.id).single()
+      .then(({ data }) => {
+        if (data) {
+          setCurrentUsername(data.username);
+          setUsername(data.username);
+        }
+      });
+  }, [session]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +36,23 @@ export default function Profile() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
+        if (!username.trim()) {
+          throw new Error("Le pseudo est obligatoire pour l'inscription.");
+        }
+
+        // 1. Inscription Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+        if (authError) throw authError;
+
+        if (authData.user) {
+          // 2. Enregistrement du pseudo dans la table profiles
+          const { error: profileError } = await supabase.from('profiles').insert({
+            id: authData.user.id,
+            username: username.trim()
+          });
+          if (profileError) throw profileError;
+        }
+
         setMessage('Inscription réussie ! Vous êtes connecté.');
       }
     } catch (error: any) {
@@ -30,6 +60,24 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUpdateUsername = async () => {
+    if (!session || !username.trim()) return;
+    setLoading(true);
+    const { error } = await supabase.from('profiles').upsert({
+      id: session.user.id,
+      username: username.trim()
+    });
+
+    if (error) {
+      setMessage("Erreur ou pseudo déjà pris.");
+    } else {
+      setCurrentUsername(username.trim());
+      setIsEditingUsername(false);
+      setMessage("Pseudo mis à jour avec succès !");
+    }
+    setLoading(false);
   };
 
   const handleLogout = async () => {
@@ -44,9 +92,50 @@ export default function Profile() {
           <div className="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <User size={40} />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Mon Profil</h2>
-          <p className="text-slate-400 text-sm mb-8 truncate">{session.user.email}</p>
+          <h2 className="text-xl font-bold text-white mb-1">Mon Profil</h2>
+          <p className="text-slate-400 text-xs mb-6 truncate">{session.user.email}</p>
           
+          {/* Gestion du pseudo */}
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 mb-6 text-left">
+            <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Mon Pseudo</label>
+            {isEditingUsername ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                  maxLength={20}
+                />
+                <button
+                  onClick={handleUpdateUsername}
+                  disabled={loading}
+                  className="bg-green-600 hover:bg-green-500 text-white p-2 rounded-lg transition-colors"
+                  title="Enregistrer"
+                >
+                  <Check size={18} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="text-white font-bold text-lg">{currentUsername || 'Aucun pseudo'}</span>
+                <button
+                  onClick={() => setIsEditingUsername(true)}
+                  className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800 transition-colors"
+                  title="Modifier"
+                >
+                  <Edit2 size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {message && (
+            <p className={`text-xs text-center mb-4 ${message.includes('Erreur') ? 'text-red-400' : 'text-green-400'}`}>
+              {message}
+            </p>
+          )}
+
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 py-3 rounded-xl transition-colors font-medium"
@@ -68,6 +157,20 @@ export default function Profile() {
         </h2>
 
         <form onSubmit={handleAuth} className="space-y-4">
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1">Pseudo</label>
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                placeholder="MonSuperPseudo"
+                maxLength={20}
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-1">Email</label>
             <input
