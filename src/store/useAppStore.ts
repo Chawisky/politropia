@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
 
-// Nos nouveaux écrans
-// Modifie juste cette ligne en haut du fichier :
-// Modifie juste la ligne "type Screen" en haut du fichier :
 type Screen = 'auth' | 'menu' | 'levels' | 'game' | 'profile' | 'leaderboard' | 'creator' | 'admin';
 
 interface AppState {
@@ -13,16 +10,17 @@ interface AppState {
   setSession: (session: Session | null) => void;
   selectedTreeId: string | null;
   setSelectedTreeId: (id: string | null) => void;
-  activeTab: 'tree' | 'leaderboard';
-  setActiveTab: (tab: 'tree' | 'leaderboard') => void;
+  // ✨ Élargissement du type pour accepter 'profile'
+  activeTab: 'tree' | 'leaderboard' | 'profile';
+  setActiveTab: (tab: 'tree' | 'leaderboard' | 'profile') => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  currentScreen: 'auth', // On commence toujours par l'authentification
+  currentScreen: 'auth',
   setCurrentScreen: (screen) => set({ currentScreen: screen }),
   session: null,
   setSession: (session) => set({ session }),
-  selectedTreeId: null, // Le niveau choisi par le joueur
+  selectedTreeId: null,
   setSelectedTreeId: (id) => set({ selectedTreeId: id }),
   activeTab: 'tree',
   setActiveTab: (tab) => set({ activeTab: tab }),
