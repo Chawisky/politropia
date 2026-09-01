@@ -13,6 +13,8 @@ interface AppState {
   setSession: (session: Session | null) => void;
   selectedTreeId: string | null;
   setSelectedTreeId: (id: string | null) => void;
+  activeTab: 'tree' | 'leaderboard';
+  setActiveTab: (tab: 'tree' | 'leaderboard') => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -22,4 +24,6 @@ export const useAppStore = create<AppState>((set) => ({
   setSession: (session) => set({ session }),
   selectedTreeId: null, // Le niveau choisi par le joueur
   setSelectedTreeId: (id) => set({ selectedTreeId: id }),
+  activeTab: 'tree',
+  setActiveTab: (tab) => set({ activeTab: tab }),
 }));
